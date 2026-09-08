@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حاسبة السعر العكسية — تابي</title>
+<meta name="description" content="احسب سعر البيع المطلوب انطلاقًا من المبلغ الذي تريد أن يبقى لك، مع خصم رسوم تابي وخصم ضريبتها من ضريبة المبيعات.">
+<meta name="theme-color" content="#16241F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="السعر العكسي">
+<style>
+  :root{
+    --paper:#E6EAE4;
+    --surface:#FBFBF9;
+    --ink:#16241F;
+    --ink-soft:#5A6862;
+    --line:#CFD6CE;
+    --fees:#A44A3F;
+    --vat:#B5892F;
+    --profit:#1E6B57;
+    --focus:#1E6B57;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"SF Arabic","Geeza Pro",system-ui,-apple-system,"Segoe UI","Noto Naskh Arabic","Droid Arabic Naskh",Tahoma,sans-serif;
+    font-size:16px;
+    line-height:1.7;
+    -webkit-text-size-adjust:100%;
+    padding:0 16px calc(40px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:540px;margin:0 auto}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;direction:ltr;unicode-bidi:isolate}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 2px 16px}
+  .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .mark{width:28px;height:28px;border-radius:8px;background:var(--ink);flex:none;display:grid;align-content:center;gap:3px;padding:6px 5px}
+  .mark i{display:block;height:3px;border-radius:2px}
+  .mark i:nth-child(1){background:var(--fees);width:32%}
+  .mark i:nth-child(2){background:var(--vat);width:24%}
+  .mark i:nth-child(3){background:var(--profit);width:62%}
+  h1{font-size:1rem;font-weight:600;margin:0;letter-spacing:-.01em}
+  .sub{font-size:.78rem;color:var(--ink-soft);margin:0}
+  #install{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:.8rem;cursor:pointer;display:none}
+  #install:hover{border-color:var(--ink)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+
+  label{display:block;font-size:.85rem;color:var(--ink-soft);margin-bottom:8px}
+  label .lbl{display:block;font-size:.75rem;margin-top:2px;line-height:1.5}
+  .field{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--line);padding-bottom:6px}
+  .field:focus-within{border-color:var(--focus)}
+  .field input{
+    flex:1;min-width:0;border:0;background:transparent;color:var(--ink);
+    font:inherit;font-size:2.4rem;font-weight:600;letter-spacing:-.02em;padding:0;
+    font-variant-numeric:tabular-nums;direction:ltr;text-align:right;
+  }
+  .field input:focus{outline:none}
+  .field .unit{font-size:.9rem;color:var(--ink-soft);flex:none}
+
+  .seg{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+  .seg button{
+    border:1px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:999px;
+    padding:7px 15px;font:inherit;font-size:.8rem;cursor:pointer;
+  }
+  .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .seg button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  /* hero */
+  .hero{background:var(--ink);border:1px solid var(--ink);color:#fff;border-radius:var(--radius);padding:22px 18px;margin-bottom:14px}
+  .hero .cap{font-size:.82rem;color:#A9B8B1;margin:0 0 2px}
+  .price{font-size:clamp(3rem,15vw,4.4rem);font-weight:650;letter-spacing:-.035em;line-height:1.05;margin:0;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+  .price .sar{font-size:.28em;font-weight:500;color:#A9B8B1;letter-spacing:0;margin-inline-start:.35em}
+  .heronote{font-size:.78rem;color:#A9B8B1;margin:6px 0 0}
+
+  .bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:#2B3D36;margin-top:18px}
+  .bar span{display:block;height:100%}
+  .bar span+span{border-inline-start:1px solid var(--ink)}
+  .s-fees{background:var(--fees)} .s-vat{background:var(--vat)} .s-profit{background:var(--profit)}
+  @media (prefers-reduced-motion:no-preference){ .bar span{transition:width .38s cubic-bezier(.2,.7,.3,1)} }
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:.75rem;color:#A9B8B1}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-inline-end:6px;vertical-align:middle}
+
+  h2{font-size:.85rem;font-weight:600;color:var(--ink-soft);margin:0 0 12px}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  th,td{text-align:start;padding:11px 0;border-bottom:1px solid var(--line);font-size:.92rem;vertical-align:baseline}
+  tr:last-child th,tr:last-child td{border-bottom:0}
+  th{font-weight:500}
+  th small{display:block;font-size:.72rem;color:var(--ink-soft);font-weight:400;line-height:1.5;margin-top:2px}
+  td{text-align:end;font-weight:600;white-space:nowrap;padding-inline-start:12px}
+  .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;margin-inline-end:8px;vertical-align:middle}
+  .final th,.final td{background:#F1F5F0;font-weight:650}
+  .final th{border-radius:0 8px 8px 0;padding-inline-start:10px}
+  .final td{border-radius:8px 0 0 8px;padding-inline-end:10px;color:var(--profit)}
+  .delta{display:inline-block;font-size:.72rem;font-weight:500;color:var(--profit);background:#E3EFE9;border-radius:999px;padding:2px 8px;margin-inline-end:6px;vertical-align:middle}
+
+  .eq{background:#F1F3F0;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .eq p{margin:0 0 8px;font-size:.85rem;color:var(--ink-soft)}
+  .eq .line{direction:ltr;text-align:left;font-variant-numeric:tabular-nums;font-size:.95rem;line-height:2;font-weight:500}
+  .eq .line span{color:var(--ink-soft);font-weight:400}
+
+  details summary{cursor:pointer;font-size:.85rem;color:var(--ink-soft);list-style:none;display:flex;align-items:center;gap:8px}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"+";font-size:.95rem;width:1em;text-align:center}
+  details[open] summary::before{content:"–"}
+  details summary:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .mini label{font-size:.78rem;margin-bottom:5px}
+  .mini input{
+    width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+    font:inherit;font-size:.95rem;padding:9px 11px;font-variant-numeric:tabular-nums;direction:ltr;text-align:right;
+  }
+  .mini input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(30,107,87,.14)}
+  .hint{font-size:.75rem;color:var(--ink-soft);margin:12px 0 0;line-height:1.6}
+
+  .btn{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:12px;font:inherit;font-size:.88rem;cursor:pointer;margin-top:16px}
+  .btn:hover{border-color:var(--ink)}
+  .btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  footer{text-align:center;font-size:.74rem;color:var(--ink-soft);padding:8px 0 0;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div>
+        <h1>حاسبة السعر العكسية</h1>
+        <p class="sub">من المبلغ الذي تريده إلى سعر العرض — تابي وضريبة القيمة المضافة</p>
+      </div>
+    </div>
+    <button id="install" type="button">تثبيت</button>
+  </header>
+
+  <div class="card">
+    <label for="profit">المبلغ الذي تريد أن يبقى لك<small class="lbl">تكلفتك وربحك معًا، بعد رسوم تابي وبعد حجز الضريبة</small></label>
+    <div class="field">
+      <input id="profit" type="text" inputmode="decimal" value="100" autocomplete="off" spellcheck="false">
+      <span class="unit">ريال</span>
+    </div>
+    <div class="seg" role="group" aria-label="تقريب سعر العرض">
+      <button type="button" data-round="exact" aria-pressed="true">دقيق</button>
+      <button type="button" data-round="riyal" aria-pressed="false">ريال كامل</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <p class="cap">اعرض هذا السعر في المتجر</p>
+    <p class="price" id="price" aria-live="polite">0.00<span class="sar">ريال</span></p>
+    <p class="heronote" id="heronote"></p>
+
+    <div class="bar" id="bar" role="img" aria-label="توزيع سعر البيع">
+      <span class="s-fees" id="segFees" style="width:0%"></span>
+      <span class="s-vat" id="segVat" style="width:0%"></span>
+      <span class="s-profit" id="segProfit" style="width:0%"></span>
+    </div>
+    <div class="legend">
+      <span><i class="s-fees"></i>تابي</span>
+      <span><i class="s-vat"></i>ضريبة مستحقة</span>
+      <span><i class="s-profit"></i>المتبقي لك</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>تفصيل العملية</h2>
+    <table>
+      <tbody>
+        <tr>
+          <th>سعر البيع النهائي<small>ما يدفعه العميل عبر تابي</small></th>
+          <td class="num" id="oPrice">0.00</td>
+        </tr>
+        <tr>
+          <th><span class="swatch s-fees"></span>إجمالي خصم تابي<small id="feeBreak"></small></th>
+          <td class="num" id="oFees">0.00</td>
+        </tr>
+        <tr>
+          <th>المبلغ المودع من تابي<small>الداخل إلى حسابك البنكي</small></th>
+          <td class="num" id="oPayout">0.00</td>
+        </tr>
+        <tr>
+          <th><span class="swatch s-vat"></span>صافي الضريبة المستحقة<small id="vatBreak"></small></th>
+          <td class="num" id="oVat">0.00</td>
+        </tr>
+        <tr class="final">
+          <th><span class="swatch s-profit"></span>المتبقي لك فعليًا</th>
+          <td class="num"><span class="delta" id="oDelta" hidden></span><span id="oProfit">0.00</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="btn" type="button" id="copy">نسخ الملخص</button>
+  </div>
+
+  <div class="card">
+    <h2>المعادلة العكسية</h2>
+    <div class="eq">
+      <p>سعر البيع = (المبلغ المطلوب + الرسم الثابت) ÷ (١ − نسبة ضريبة المبيعات − نسبة تابي المتغيرة)</p>
+      <div class="line" id="eqLine"></div>
+    </div>
+    <p class="hint" id="eqNote"></p>
+  </div>
+
+  <div class="card">
+    <details id="d-settings">
+      <summary>تعديل الرسوم ونسب الضريبة</summary>
+      <div class="grid">
+        <div class="mini">
+          <label for="fvar">رسوم تابي المتغيرة %</label>
+          <input id="fvar" type="text" inputmode="decimal" value="6.99">
+        </div>
+        <div class="mini">
+          <label for="ffix">الرسم الثابت للعملية</label>
+          <input id="ffix" type="text" inputmode="decimal" value="1.5">
+        </div>
+        <div class="mini">
+          <label for="vatfee">ضريبة على رسوم تابي %</label>
+          <input id="vatfee" type="text" inputmode="decimal" value="15">
+        </div>
+        <div class="mini">
+          <label for="vatstate">ضريبة المبيعات %</label>
+          <input id="vatstate" type="text" inputmode="decimal" value="15">
+        </div>
+      </div>
+      <div class="seg" role="group" aria-label="أساس احتساب ضريبة المبيعات">
+        <button type="button" data-basis="add" aria-pressed="true">الضريبة فوق السعر</button>
+        <button type="button" data-basis="incl" aria-pressed="false">السعر شامل الضريبة</button>
+      </div>
+      <p class="hint" id="basisHint"></p>
+    </details>
+  </div>
+
+  <footer>
+    تعمل دون إنترنت بعد أول فتح · التقريب لأقرب هللة · أرقام إرشادية للتسعير، لا تغني عن الإقرار الرسمي
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var S = { profit:100, fvar:6.99, ffix:1.5, vatfee:15, vatstate:15, basis:"add", round:"exact" };
+
+  function r2(x){ return Math.round((x + Number.EPSILON) * 100) / 100; }
+  function fmt(x){
+    if (!isFinite(x)) return "—";
+    return x.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function num(v){
+    var n = parseFloat(String(v).replace(/[^\d.\-]/g, ""));
+    return isFinite(n) ? n : 0;
+  }
+  function applyRound(p){
+    if (S.round === "riyal") return Math.ceil(p - 1e-9);
+    return r2(p);
+  }
+
+  function compute(){
+    var fv = S.fvar/100, vf = S.vatfee/100, vs = S.vatstate/100;
+    var share = (S.basis === "incl") ? vs/(1+vs) : vs;
+    var denom = 1 - share - fv;
+    if (denom <= 0) return { bad:true };
+
+    var raw = (S.profit + S.ffix) / denom;
+    if (raw < 0) raw = 0;
+    var P = r2(applyRound(raw));
+
+    var feeVar   = r2(fv * P);
+    var feeTotal = r2(feeVar + S.ffix);
+    var vatFees  = r2(vf * feeTotal);
+    var deduct   = r2(feeTotal + vatFees);
+    var payout   = r2(P - deduct);
+
+    var vatOut   = (S.basis === "incl") ? r2(P * vs/(1+vs)) : r2(P * vs);
+    var vatNet   = r2(vatOut - vatFees);
+    var profit   = r2(payout - vatNet);
+
+    return { P:P, raw:raw, denom:denom, share:share, feeVar:feeVar, feeTotal:feeTotal,
+             vatFees:vatFees, deduct:deduct, payout:payout, vatOut:vatOut, vatNet:vatNet,
+             profit:profit };
+  }
+
+  function el(id){ return document.getElementById(id); }
+
+  function render(){
+    var c = compute();
+    if (c.bad){
+      el("price").innerHTML = '—<span class="sar">ريال</span>';
+      el("heronote").textContent = "الرسوم والضريبة تستهلك السعر بالكامل. راجع النسب في الأسفل.";
+      return;
+    }
+
+    el("price").innerHTML = fmt(c.P) + '<span class="sar">ريال</span>';
+
+    var note = (S.basis === "incl") ? "شامل ضريبة القيمة المضافة" : "قبل إضافة الضريبة عليه";
+    var gap = r2(c.P - c.raw);
+    if (S.round === "riyal" && gap > 0) note += " · مقرَّب للأعلى بـ " + fmt(gap) + " ريال";
+    el("heronote").textContent = note;
+
+    function pos(v){ return Math.max(0, v); }
+    var total = pos(c.deduct) + pos(c.vatNet) + pos(c.profit);
+    function seg(id, v){
+      var n = el(id);
+      n.style.display = pos(v) > 0 ? "block" : "none";
+      n.style.width = total > 0 ? (pos(v)/total*100).toFixed(2) + "%" : "0%";
+    }
+    seg("segFees", c.deduct); seg("segVat", c.vatNet); seg("segProfit", c.profit);
+
+    el("oPrice").textContent  = fmt(c.P);
+    el("oFees").textContent   = fmt(c.deduct);
+    el("oPayout").textContent = fmt(c.payout);
+    el("oVat").textContent    = fmt(c.vatNet);
+    el("oProfit").textContent = fmt(c.profit);
+
+    el("feeBreak").textContent = fmt(c.feeVar) + " متغيرة + " + fmt(S.ffix) + " ثابت + " + fmt(c.vatFees) + " ضريبة";
+    el("vatBreak").textContent = fmt(c.vatOut) + " ضريبة مبيعات − " + fmt(c.vatFees) + " ضريبة رسوم تابي";
+
+    var d = r2(c.profit - S.profit);
+    var dEl = el("oDelta");
+    if (Math.abs(d) >= 0.005){ dEl.hidden = false; dEl.textContent = (d > 0 ? "+" : "−") + fmt(Math.abs(d)); }
+    else { dEl.hidden = true; }
+
+    el("eqLine").innerHTML =
+      "(" + fmt(S.profit) + " + " + fmt(S.ffix) + ") ÷ (1 − " +
+      c.share.toFixed(4) + " − " + (S.fvar/100).toFixed(4) + ")<br>" +
+      "= " + fmt(r2(S.profit + S.ffix)) + " ÷ " + c.denom.toFixed(4) +
+      " = <span>" + c.raw.toFixed(4) + "</span> → " + fmt(c.P);
+
+    el("eqNote").textContent =
+      "نسبة الضريبة على رسوم تابي (" + S.vatfee + "٪) لا تظهر في المعادلة: بخصمها من ضريبة المبيعات تُلغى بالكامل، "
+      + "فهي لا ترفع السعر المطلوب ولا تخفضه.";
+
+    el("basisHint").textContent = (S.basis === "incl")
+      ? "السعر المعروض يتضمن الضريبة، وتُستخرج منه بنسبة 15÷115."
+      : "الضريبة تُحسب كنسبة فوق سعر العرض.";
+  }
+
+  function bind(id, key){
+    var input = el(id);
+    input.addEventListener("input", function(){ S[key] = num(input.value); render(); });
+    input.addEventListener("blur", function(){
+      if (input.value.trim() === ""){ input.value = "0"; S[key] = 0; render(); }
+    });
+  }
+  bind("profit","profit"); bind("fvar","fvar"); bind("ffix","ffix");
+  bind("vatfee","vatfee"); bind("vatstate","vatstate");
+
+  function group(attr, key){
+    var btns = document.querySelectorAll("[data-" + attr + "]");
+    Array.prototype.forEach.call(btns, function(b){
+      b.addEventListener("click", function(){
+        Array.prototype.forEach.call(btns, function(x){ x.setAttribute("aria-pressed","false"); });
+        b.setAttribute("aria-pressed","true");
+        S[key] = b.getAttribute("data-" + attr);
+        render();
+      });
+    });
+  }
+  group("round","round");
+  group("basis","basis");
+
+  el("copy").addEventListener("click", function(){
+    var c = compute();
+    if (c.bad) return;
+    var text = [
+      "سعر البيع النهائي: " + fmt(c.P) + " ريال",
+      "خصم تابي: " + fmt(c.deduct) + " ريال",
+      "المودع في البنك: " + fmt(c.payout) + " ريال",
+      "صافي الضريبة المستحقة: " + fmt(c.vatNet) + " ريال",
+      "المتبقي لك: " + fmt(c.profit) + " ريال"
+    ].join("\n");
+    var btn = this;
+    function done(){ btn.textContent = "تم النسخ"; setTimeout(function(){ btn.textContent = "نسخ الملخص"; }, 1600); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch(e){ btn.textContent = "تعذّر النسخ"; }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+
+  var deferred = null;
+  window.addEventListener("beforeinstallprompt", function(e){
+    e.preventDefault(); deferred = e; el("install").style.display = "block";
+  });
+  el("install").addEventListener("click", function(){
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(){ deferred = null; el("install").style.display = "none"; });
+  });
+
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
